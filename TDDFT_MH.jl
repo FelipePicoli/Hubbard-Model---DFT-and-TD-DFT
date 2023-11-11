@@ -17,7 +17,7 @@ using Integrals  #Integrals
 #############################################--- Setting the parameters ---################################################
 ############################################################################################################################
 
-const U=0.0                        #Couloumb repultion
+const U=5.0                        #Couloumb repultion
 const L=2                          #Chain size
       v0=zeros(L)                    #Site energy
       v=zeros(L)                    #Site energy
@@ -31,7 +31,7 @@ const N_time=1000                  # Number of time steps
 const W=-0.5                       # Scatering potential
 const SP_site=1                   # Scatering potential Site
 const Exc=100
-const J=2.0
+const J=5.0
 
 println("number of threads= ",Threads.nthreads())
 
@@ -696,7 +696,7 @@ end
 
 if file_=="1"
 
-    file=open("TDDFT"*"Delta"*string(Δ)*"J"*string(J)*"t_i"*string(t_i)*"t_f"*string(t_f)*"N_time"*string(N_time)*".txt","w")  # file's name -> W value, r means random, 1 is the delta's value and 100 is the number of points of time, essemble's size
+    file=open("TDDFT"*"Delta"*string(W)*"U"*string(U)*"J"*string(J)*"t_i"*string(t_i)*"t_f"*string(t_f)*"N_time"*string(N_time)*".txt","w")  # file's name -> W value, r means random, 1 is the delta's value and 100 is the number of points of time, essemble's size
        
     #file=open("4te.txt","w")  # file's name -> W value, r means random, 1 is the delta's value and 100 is the number of points of time, essemble's size
     

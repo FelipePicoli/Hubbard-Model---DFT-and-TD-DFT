@@ -21,7 +21,7 @@ const U=5.0                        #Couloumb repultion
 const L=2                          #Chain size
       v0=zeros(L)                    #Site energy
       v=zeros(L)                    #Site energy
-const ΔE=1.E-8                     #Convergence parameter
+const ΔE=1.E-6                     #Convergence parameter
 const nj_0=0.5.*ones(L)             #Intial density
 const N=Int(L/2)                    #Number of electrons
 const file_="1"                     # 1 write an article, 0 does not 
@@ -148,6 +148,7 @@ end
 
 #############################################---- Khon-Sham potential----#####################################################
 
+#=
 function Pot_KS(nj,βU,U)
 
     vj=zeros(length(nj))
@@ -167,6 +168,28 @@ function Pot_KS(nj,βU,U)
         elseif (n>1)&&(n<=2)
 
             vj[i]+=-2*cos(pi*(2-n)/2)-U/2*(2-n)+2*cos((2-n)*βU)
+
+        end
+    end
+
+    return vj
+end=#
+
+function Pot_KS(nj,βU,U)
+
+    vj=zeros(length(nj))
+
+    for i in 1:1:length(nj)
+
+        n=nj[i]
+
+        if (n>=0)&&(n<=1)
+
+            vj[i]+=-2*cos(pi*n/2)-U/2*n-2*cos(n*pi/βU)
+
+        elseif (n>1)&&(n<=2)
+
+            vj[i]+=2*cos(pi*(2-n)/2)-U/2*n+2*cos((2-n)*pi/βU)-2*βU*U/pi
 
         end
     end
@@ -363,12 +386,12 @@ function ProjTot(VecIni,EnerFin,VecFin,InitialState,Finalstates)  #Initial and F
     mat_proj_h=zeros(length(Finalstates),length(Finalstates))
    
 
-    for p in 1:1:length(Finalstates)
+    @threads for p in 1:1:length(Finalstates)
 
         State_ini=Finalstates[p]
         ener[p]+=StateEnergy(State_ini,EnerFin)          # we are calculating the state energy
 
-        for q in 1:1:length(Finalstates)
+        @threads for q in 1:1:length(Finalstates)
        
             State_fin=Finalstates[q]
             a=Proj(State_ini,State_fin,matProd)
@@ -439,7 +462,7 @@ function SCC(L,N,U,ΔE,v,nj_0)
     μ=-Ener[N+1]
     n=0
     
-    while abs(E-E0)>=ΔE
+    while sum(abs.(nj_-nj_0))/L>=ΔE
 
         nj_0=(0.95.*nj_0.+0.05.*nj_)
         E0=E

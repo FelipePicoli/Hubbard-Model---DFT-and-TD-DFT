@@ -7,11 +7,11 @@ using Integrals  #Integrals
 
 
 Δ=-0.5
-U=0.0
+U=5.0
 ti=0.0
-tf=10.0
-J=5.0
-N=10000
+tf=15.0
+J=10.0
+N=1000
 
 #Potential
 

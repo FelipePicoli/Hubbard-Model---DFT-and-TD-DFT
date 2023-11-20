@@ -17,21 +17,21 @@ using Integrals  #Integrals
 #############################################--- Setting the parameters ---################################################
 ############################################################################################################################
 
-const U=5.0                        #Couloumb repultion
-const L=2                          #Chain size
+const U=0.0                        #Couloumb repultion
+const L=10                          #Chain size
       v0=zeros(L)                    #Site energy
       v=zeros(L)                    #Site energy
-const ΔE=1.E-6                     #Convergence parameter
-const nj_0=0.5.*ones(L)             #Intial density
+const Δn=1.E-6                     #Convergence parameter
+const nj_0=ones(L)             #Intial density
 const N=Int(L/2)                    #Number of electrons
 const file_="1"                     # 1 write an article, 0 does not 
 const t_i=0.0                       # Intial Time
 const t_f=10                     # Final time
 const N_time=1000                  # Number of time steps
-const W=-0.5                       # Scatering potential
+const W=-2.0                       # Scatering potential
 const SP_site=1                   # Scatering potential Site
 const Exc=100
-const J=5.0
+const J=0.00001
 
 println("number of threads= ",Threads.nthreads())
 
@@ -148,33 +148,6 @@ end
 
 #############################################---- Khon-Sham potential----#####################################################
 
-#=
-function Pot_KS(nj,βU,U)
-
-    vj=zeros(length(nj))
-
-    for i in 1:1:length(nj)
-
-        n=nj[i]
-
-        if (n>=0)&&(n<1)
-
-            vj[i]+=2*cos(pi*n/2)-U/2*n-2*cos(n*βU)
-
-        elseif n==1
-
-            vj[i]+=0.0
-
-        elseif (n>1)&&(n<=2)
-
-            vj[i]+=-2*cos(pi*(2-n)/2)-U/2*(2-n)+2*cos((2-n)*βU)
-
-        end
-    end
-
-    return vj
-end=#
-
 function Pot_KS(nj,βU,U)
 
     vj=zeros(length(nj))
@@ -196,6 +169,8 @@ function Pot_KS(nj,βU,U)
 
     return vj
 end
+
+#############################################---- Hartree potential----#####################################################
 
 function Pot_H(nj,U)
 
@@ -436,7 +411,7 @@ function nj(Vec,N,L)
 
         for i in 1:N
 
-            nj_[j]+=abs2(Vec[j,i])
+            nj_[j]+=abs2(Vec[j,i])*2
 
         end
     end
@@ -446,7 +421,7 @@ end
 
 #############################################---- TSelf-Consistent Calculation----#####################################################
 
-function SCC(L,N,U,ΔE,v,nj_0)
+function SCC(L,N,U,Δn,v,nj_0)
 
     E0_BA=BA_E0L(U)
     βU=bU(E0_BA)
@@ -462,7 +437,7 @@ function SCC(L,N,U,ΔE,v,nj_0)
     μ=-Ener[N+1]
     n=0
     
-    while sum(abs.(nj_-nj_0))/L>=ΔE
+    while sum(abs.(nj_-nj_0))/L>=Δn
 
         nj_0=(0.95.*nj_0.+0.05.*nj_)
         E0=E
@@ -487,7 +462,7 @@ end
 #########################################---- Main Calculation function ----################################################
 ############################################################################################################################
 
-function distri(w,L,N,Initial_State,FinalStates,t,Ψ_0,J,N_sites,v0,v)
+function distri(w,L,N,Initial_State,FinalStates,t,Ψ_0,J,N_sites,v0,v,Δn)
     
 
     dt=abs(t[1]-t[2])
@@ -499,7 +474,7 @@ function distri(w,L,N,Initial_State,FinalStates,t,Ψ_0,J,N_sites,v0,v)
     Ψ_t_1=Ψ_0
     absc_0=zeros(length(t))
 
-    E0,nj0,matH_i,Vec0, Ener0=SCC(L,N,U,ΔE,v0,nj_0)
+    E0,nj0,matH_i,Vec0, Ener0=SCC(L,N,U,Δn,v0,nj_0)
 
     Vec=1.0.*Vec0
     Ener=1.0.*Ener0
@@ -510,17 +485,27 @@ function distri(w,L,N,Initial_State,FinalStates,t,Ψ_0,J,N_sites,v0,v)
     for t_i in 1:1:length(t)
 
         absc_0[t_i]+=abs(Ψ_t_1[1])
-        on_l_fund[:,t_i].+=n_l_fund(N_sites,VecFin,Initial_State)
+        on_l_fund[:,t_i].+=2*n_l_fund(N_sites,VecFin,Initial_State)
         
 
         if t[t_i]<=abs(J)
 
-            v[1]=W_p(w,J,t[t_i]+dt/2)
-            v[2]=-1.0*W_p(w,J,t[t_i]+dt/2)
-            
-            E,nj,matH_f,Vec,Ener=SCC(L,N,U,ΔE,v,nj0)
+            for i in 1:L
 
-            println(v[1])
+                if i%2!=0
+
+                    v[i]=W_p(w,J,t[t_i]+dt/2)
+
+                else
+                    
+                    v[i]=-1.0*W_p(w,J,t[t_i]+dt/2)
+
+                end
+            end
+            
+            E,nj,matH_f,Vec,Ener=SCC(L,N,U,Δn,v,nj0)
+
+            println(v)
         
         end
 
@@ -529,6 +514,7 @@ function distri(w,L,N,Initial_State,FinalStates,t,Ψ_0,J,N_sites,v0,v)
         EnerFin=Ener
 
         ener,matproj,matproj_h=ProjTot(Vec0,EnerFin,VecFin,Initial_State,FinalStates)
+    
        
         Ψ_t_1=expE(dt,ener)*matproj_h*Ψ_t_m
 
@@ -538,7 +524,7 @@ function distri(w,L,N,Initial_State,FinalStates,t,Ψ_0,J,N_sites,v0,v)
         
         res[t_i]+=abs2(Ψ_t[1])
 
-        on_l[:,t_i].+=n_l(N_sites,Ψ_t,Vec0,FinalStates)
+        on_l[:,t_i].+=2*n_l(N_sites,Ψ_t,Vec0,FinalStates)
         println(on_l[:,t_i])
 
         Ψ_t_m=Ψ_t
@@ -679,7 +665,7 @@ end
 #########################################---- Main Calculation function ----################################################
 ############################################################################################################################
 
-function Main_Calc_func(N,t_i,t_f,N_time,W,Exc,J,v0,v)
+function Main_Calc_func(N,t_i,t_f,N_time,W,Exc,J,v0,v,Δn)
     
     Tau=LinRange(t_i,t_f,N_time)
     som_tot=zeros(N_time)
@@ -697,7 +683,7 @@ function Main_Calc_func(N,t_i,t_f,N_time,W,Exc,J,v0,v)
     Ψ_0[1]+=1.0
 
    
-    a,b,c,d,e=distri(W,L,N,Initial_State,FinalStates,Tau,Ψ_0,J,N_sites,v0,v)
+    a,b,c,d,e=distri(W,L,N,Initial_State,FinalStates,Tau,Ψ_0,J,N_sites,v0,v,Δn)
     som_tot.+=a
     som_tot_inst.+=b
     oN_l.+=c
@@ -714,7 +700,7 @@ end
 #################################################---- Really Calculation ----###############################################
 ############################################################################################################################
 
-@time t,p,inst,a,b,Tr,Bu,Dens=Main_Calc_func(N,t_i,t_f,N_time,W,Exc,J,v0,v)
+@time t,p,inst,a,b,Tr,Bu,Dens=Main_Calc_func(N,t_i,t_f,N_time,W,Exc,J,v0,v,Δn)
 
 
 if file_=="1"

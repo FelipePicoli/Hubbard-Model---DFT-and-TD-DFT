@@ -7,11 +7,11 @@ using Integrals  #Integrals
 
 
 Δ=-0.5
-U=5.0
+U=2.0
 ti=0.0
-tf=15.0
-J=10.0
-N=1000
+tf=1.0
+J=0.00001
+N=2
 
 #Potential
 
@@ -88,6 +88,7 @@ function main(Δ,U,ti,tf,N,J)
         H=mH(W_p(Δ,J,Tau[i]),-1.0*W_p(Δ,J,Tau[i]),U)
         Vec=eigvecs(H)
         Ener=eigvals(H)
+        println(Ener[1]/2)
         Pip1=exp(-1im*H*dt)*Pi
         n[:,i].+=nl(Pip1)
         println(nl(Vec[:,1]))
@@ -102,6 +103,7 @@ end
 
 t,n=main(Δ,U,ti,tf,N,J)
 
+#=
 file=open("ExatoU"*string(U)*"Delta"*string(Δ)*"J"*string(J)*".txt","w") 
     
 
@@ -111,4 +113,4 @@ for i=1:1:N
 
 end
 
-close(file)
+close(file)=#
